@@ -1,9 +1,12 @@
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const { User } = require("../models/user");
 
 const HttpError = require("../helpers/HttpError");
 const ctrlWrapper = require("../helpers/ctrlWrapper");
+
+const { SECRET_KEY } = process.env;
 
 const register = async (req, res) => {
   const { email, password } = req.body;
@@ -12,7 +15,7 @@ const register = async (req, res) => {
     throw HttpError(409, "Email already in use");
   }
 
-  const hashPassword = await bcrypt.hashPassword(password, 10);
+  const hashPassword = await bcrypt.hash(password, 10);
 
   const newUser = await User.create({ ...req.body, password: hashPassword });
   res.json({
@@ -31,7 +34,14 @@ const login = async (req, res) => {
   if (!passwordCompare) {
     throw HttpError(401, "Email or password invalid");
   }
-  //   const token = "";
+
+  const payload = {
+    id: user._id,
+  };
+
+  const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "222d" });
+
+  res.json({ token });
 };
 
 module.exports = {
