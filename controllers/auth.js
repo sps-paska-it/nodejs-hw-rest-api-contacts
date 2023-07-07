@@ -18,10 +18,21 @@ const register = async (req, res) => {
   const hashPassword = await bcrypt.hash(password, 10);
 
   const newUser = await User.create({ ...req.body, password: hashPassword });
+
+  const payload = {
+    id: newUser._id,
+  };
+
+  const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "23h" });
+  await User.findByIdAndUpdate(newUser._id, { token });
+
   res.json({
-    name: newUser.name,
-    email: newUser.email,
-    subscription: newUser.subscription,
+    token,
+    user: {
+      name: newUser.name,
+      email: newUser.email,
+      subscription: newUser.subscription,
+    },
   });
 };
 
@@ -54,7 +65,7 @@ const login = async (req, res) => {
 
 const getCurrent = async (req, res) => {
   const { name, email, subscription } = req.user;
-
+  console.log(email);
   res.json({ name, email, subscription });
 };
 
@@ -67,7 +78,6 @@ const logout = async (req, res) => {
 
 const updateUserSubscription = async (req, res) => {
   const { _id } = req.user;
-  // const { subscription } = req.params;
   const result = await User.findByIdAndUpdate(_id, req.body, {
     new: true,
   });
