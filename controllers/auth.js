@@ -8,10 +8,9 @@ const { User } = require("../models/user");
 
 const HttpError = require("../helpers/HttpError");
 const ctrlWrapper = require("../helpers/ctrlWrapper");
+const jimp = require("jimp");
 
 const { SECRET_KEY } = process.env;
-
-const avatarsDir = path.join(__dirname, "../", "public", "avatars");
 
 const register = async (req, res) => {
   const { email, password } = req.body;
@@ -75,7 +74,6 @@ const login = async (req, res) => {
 
 const getCurrent = async (req, res) => {
   const { name, email, subscription } = req.user;
-  console.log(email);
   res.json({ name, email, subscription });
 };
 
@@ -98,9 +96,21 @@ const updateUserSubscription = async (req, res) => {
 const updateAvatar = async (req, res) => {
   const { _id } = req.user;
   const { path: tempUpload, originalname } = req.file;
-  const resultUpload = path.join(avatarsDir, originalname);
-  await fs.rename(tempUpload, resultUpload);
-  const avatarURL = path.join("avatar", originalname);
+  const filename = `${_id}_${originalname}`;
+
+  const image = await jimp.read(tempUpload);
+  image.cover(150, 150);
+  const resultUpload = path.join(
+    __dirname,
+    "../",
+    "public",
+    "avatars",
+    filename
+  );
+  await image.writeAsync(resultUpload);
+  await fs.unlink(tempUpload);
+
+  const avatarURL = path.join("avatar", filename);
   await User.findByIdAndUpdate(_id, { avatarURL });
 
   res.json({
