@@ -4,7 +4,22 @@ const HttpError = require("../helpers/HttpError");
 const ctrlWrapper = require("../helpers/ctrlWrapper");
 
 const listContacts = async (req, res) => {
-  const result = await Contact.find();
+  const { _id: owner } = req.user;
+  const { page = 1, limit = 3, favorite } = req.query;
+  const skip = (page - 1) * limit;
+  const result = await Contact.find({ owner }, "-createdAt -updatedAt", {
+    skip,
+    limit,
+  }).populate("owner");
+
+  if (favorite) {
+    const resultFilter = result.filter(
+      (contact) => contact.favorite === (favorite === "true")
+    );
+    res.json(resultFilter);
+    return;
+  }
+
   res.json(result);
 };
 
@@ -18,7 +33,8 @@ const getContactById = async (req, res) => {
 };
 
 const addContact = async (req, res) => {
-  const result = await Contact.create(req.body);
+  const { _id: owner } = req.user;
+  const result = await Contact.create({ ...req.body, owner });
   res.status(201).json(result);
 };
 
@@ -28,7 +44,7 @@ const removeContact = async (req, res) => {
   if (!result) {
     throw HttpError(404, "Not found");
   }
-  res.json({ message: "Contact deleted" });
+  res.json(result);
 };
 
 const updateContact = async (req, res) => {
