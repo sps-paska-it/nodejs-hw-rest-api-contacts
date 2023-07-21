@@ -12,10 +12,8 @@ const listContacts = async (req, res) => {
     limit,
   }).populate("owner");
 
-  if (favorite) {
-    const resultFilter = result.filter(
-      (contact) => contact.favorite === (favorite === "true")
-    );
+  if (favorite === "true") {
+    const resultFilter = result.filter((contact) => contact.favorite === true);
     res.json(resultFilter);
     return;
   }
