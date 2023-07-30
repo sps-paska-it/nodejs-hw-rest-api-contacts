@@ -35,7 +35,7 @@ const register = async (req, res) => {
   const verifyEmail = {
     to: email,
     subject: "Verify email",
-    html: `<a target='_blank' href='${BASE_URL}/api/auth/verify/${verificationCode}'>Click verify email</a>`,
+    html: `<a target='_blank' href='${BASE_URL}/verify/${verificationCode}'>Click verify email</a>`,
   };
 
   await sendEmail(verifyEmail);
@@ -48,12 +48,10 @@ const register = async (req, res) => {
   await User.findByIdAndUpdate(newUser._id, { token });
 
   res.json({
-    token,
-    user: {
-      name: newUser.name,
-      email: newUser.email,
-      subscription: newUser.subscription,
-    },
+    name: newUser.name,
+    email: newUser.email,
+    subscription: newUser.subscription,
+    verify: newUser.verify,
   });
 };
 
@@ -61,15 +59,19 @@ const verifyEmail = async (req, res) => {
   const { verificationCode } = req.params;
   const user = await User.findOne({ verificationCode });
   if (!user) {
-    throw HttpError(401, "Email not found");
+    throw HttpError(401, "User not found");
   }
+
   await User.findByIdAndUpdate(user._id, {
     verify: true,
     verificationCode: "",
   });
 
   res.json({
-    message: "Email verify success",
+    token: user.token,
+    name: user.name,
+    email: user.email,
+    subscription: user.subscription,
   });
 };
 
@@ -79,19 +81,20 @@ const resendVerifyEmail = async (req, res) => {
   if (!user) {
     throw HttpError(401, "Email not found, it is not possible to resend");
   }
-  if (!user.verify) {
+  if (user.verify) {
     throw HttpError(401, "Email already verified");
   }
 
   const verifyEmail = {
     to: email,
     subject: "Verify email",
-    html: `<a target='_blank' href='${BASE_URL}/api/auth/verify/${user.verificationCode}'>Click verify email</a>`,
+    html: `<a target='_blank' href='${BASE_URL}/verify/${user.verificationCode}'>Click verify email</a>`,
   };
 
   await sendEmail(verifyEmail);
 
   res.json({
+    email,
     message: "Verify email send success",
   });
 };
@@ -121,10 +124,8 @@ const login = async (req, res) => {
 
   res.json({
     token,
-    user: {
-      email: user.email,
-      subscription: user.subscription,
-    },
+    email: user.email,
+    subscription: user.subscription,
   });
 };
 
